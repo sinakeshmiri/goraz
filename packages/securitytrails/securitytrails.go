@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func Find(domin string, key string)[]string {
+func Find(domin string, key string) []string {
 
 	resp, err := call(domin, "a", key)
 	if err != nil {
@@ -21,16 +21,16 @@ func Find(domin string, key string)[]string {
 	mailHosts := mxResHandler(resp)
 	for _, host := range mailHosts {
 		if host != domin {
-			fmt.Println(host)
+			//fmt.Println(host)
 			resp, err := call(host, "a", key)
 			if err != nil {
 				fmt.Println(err)
 			}
 			ipList := aResHandler(resp)
-			ips = append(ips,ipList...)
+			ips = append(ips, ipList...)
 		}
 	}
-	ips = removeDuplicateStr(ips)
+	ips = RemoveDuplicateStr(ips)
 	return ips
 }
 
@@ -78,7 +78,7 @@ func aResHandler(resp *http.Response) []string {
 		}
 
 	}
-	ips = removeDuplicateStr(ips)
+	ips = RemoveDuplicateStr(ips)
 	return ips
 }
 func mxResHandler(resp *http.Response) []string {
@@ -106,11 +106,11 @@ func mxResHandler(resp *http.Response) []string {
 		}
 
 	}
-	ips = removeDuplicateStr(ips)
+	ips = RemoveDuplicateStr(ips)
 	return ips
 }
 
-func removeDuplicateStr(strSlice []string) []string {
+func RemoveDuplicateStr(strSlice []string) []string {
 	allKeys := make(map[string]bool)
 	list := []string{}
 	for _, item := range strSlice {
