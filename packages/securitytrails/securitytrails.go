@@ -2,23 +2,30 @@ package securitytrails
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 )
 
-func Find(domin string, key string) []string {
+func Find(domin string, key string) ([]string, error) {
 
 	resp, err := call(domin, "a", key)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	ips := aResHandler(resp)
+	ips, err := aResHandler(resp)
+	if err != nil {
+		return nil, err
+	}
 	resp, err = call("partdp.ir", "mx", key)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	mailHosts := mxResHandler(resp)
+	mailHosts, err := mxResHandler(resp)
+	if err != nil {
+		return nil, err
+	}
 	for _, host := range mailHosts {
 		if host != domin {
 			//fmt.Println(host)
@@ -26,12 +33,15 @@ func Find(domin string, key string) []string {
 			if err != nil {
 				fmt.Println(err)
 			}
-			ipList := aResHandler(resp)
+			ipList, err := aResHandler(resp)
+			if err != nil {
+				return nil, err
+			}
 			ips = append(ips, ipList...)
 		}
 	}
 	ips = RemoveDuplicateStr(ips)
-	return ips
+	return ips, nil
 }
 
 func call(domin string, recType string, key string) (*http.Response, error) {
@@ -53,35 +63,45 @@ func call(domin string, recType string, key string) (*http.Response, error) {
 	return res, nil
 }
 
-func aResHandler(resp *http.Response) []string {
+func aResHandler(resp *http.Response) ([]string, error) {
 	var ips []string
 	var results map[string]interface{}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
 	// close response body
 	resp.Body.Close()
 	err = json.Unmarshal(body, &results)
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
-	records := results["records"].([]interface{})
-
+	records, ok := results["records"].([]interface{})
+	if !ok {
+		return nil, errors.New("[!1] : no records found for this domin , check requested domin and your securitytrails key ")
+	}
 	for _, j := range records {
-		h := j.(map[string]interface{})
-		t := h["values"].([]interface{})
+		h, ok := j.(map[string]interface{})
+		if !ok {
+			return nil, errors.New("[!2] : no records found for this domin , check requested domin and your securitytrails key ")
+		}
+		t, ok := h["values"].([]interface{})
+		if !ok {
+			return nil, errors.New("[!3] : no records found for this domin , check requested domin and your securitytrails key ")
+		}
 		for _, v := range t {
-			x := v.(map[string]interface{})
-			//fmt.Println(x["ip"])
+			x, ok := v.(map[string]interface{})
+			if !ok {
+				return nil, errors.New("[!4] : no records found for this domin , check requested domin and your securitytrails key ")
+			}
 			ips = append(ips, x["ip"].(string))
 		}
 
 	}
 	ips = RemoveDuplicateStr(ips)
-	return ips
+	return ips, nil
 }
-func mxResHandler(resp *http.Response) []string {
+func mxResHandler(resp *http.Response) ([]string, error) {
 	var ips []string
 	var results map[string]interface{}
 	body, err := ioutil.ReadAll(resp.Body)
@@ -92,22 +112,33 @@ func mxResHandler(resp *http.Response) []string {
 	resp.Body.Close()
 	err = json.Unmarshal(body, &results)
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
-	records := results["records"].([]interface{})
-
+	records, ok := results["records"].([]interface{})
+	if !ok {
+		return nil, errors.New("[!1] : no records found for this domin , check requested domin and your securitytrails key ")
+	}
 	for _, j := range records {
-		h := j.(map[string]interface{})
-		t := h["values"].([]interface{})
+		h, ok := j.(map[string]interface{})
+		if !ok {
+			return nil, errors.New("[!1] : no records found for this domin , check requested domin and your securitytrails key ")
+		}
+		t, ok := h["values"].([]interface{})
+		if !ok {
+			return nil, errors.New("[!1] : no records found for this domin , check requested domin and your securitytrails key ")
+		}
 		for _, v := range t {
-			x := v.(map[string]interface{})
+			x, ok := v.(map[string]interface{})
+			if !ok {
+				return nil, errors.New("[!1] : no records found for this domin , check requested domin and your securitytrails key ")
+			}
 			//fmt.Println(x["ip"])
 			ips = append(ips, x["host"].(string))
 		}
 
 	}
 	ips = RemoveDuplicateStr(ips)
-	return ips
+	return ips, nil
 }
 
 func RemoveDuplicateStr(strSlice []string) []string {

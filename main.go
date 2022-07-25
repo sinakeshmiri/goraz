@@ -35,9 +35,12 @@ func main() {
 	if err != nil {
 		fmt.Printf("error: %v", err)
 	}
-	ips := securitytrails.Find(config.Host, config.SecuritytrailsKey)
-	ips = append(ips,shodan.Find(config.Host, config.ShodanKey)...)
-	ips=securitytrails.RemoveDuplicateStr(ips)
+	ips, err := securitytrails.Find(config.Host, config.SecuritytrailsKey)
+	if err != nil {
+		fmt.Println(err)
+	}
+	ips = append(ips, shodan.Find(config.Host, config.ShodanKey)...)
+	ips = securitytrails.RemoveDuplicateStr(ips)
 	fmt.Println(ips)
 
 }
